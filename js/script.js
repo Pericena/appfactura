@@ -32,7 +32,6 @@ $btnDetectar.addEventListener("click", () => {
     .recognize(archivos[0], 'spa')
     .progress(p => {
       $estado.innerHTML += `<br><strong>Estado: ${p.status}</strong> (${p.progress * 100} % )`;
-     // $estado.innerHTML += `hidden <br><strong>Estado: ${p.status}</strong> (${p.progress * 100} % )`;
     })
     .then((result) => {
       $estado.innerHTML = "<strong>El texto es: </strong><pre>" + result.text + "</pre>";

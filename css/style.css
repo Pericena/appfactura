@@ -4,4 +4,9 @@
 */
 body{
   padding-top: 70px;
+  background-color: rgb(255, 255, 255);
+}
+
+p{
+color: #fff;
 }

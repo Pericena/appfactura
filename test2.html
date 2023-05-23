@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Conversor de imagen a texto - Extraer texto de imagen utilizando Tesseract OCR (reconocimiento óptico de caracteres)">
+    <meta name="author" content="Luishino">
+    <title>facturita XD</title>
+    <!-- Cargar el CSS de Bootstrap-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- Cargar estilos propios -->
+<!-- 
+    https://allisonhorst.github.io/tesseract-demo/demo.html 
+  https://www.r-bloggers.com/2017/08/tesseract-and-magick-high-quality-ocr-in-r/
+  https://saturdays.ai/tag/bolivia/
+  -->
+  </head>
+
+		<title>Crop and batch process test</title>
+		<style>
+body
+{
+  background: #112146;
+  color: #fff;
+  font-size: 10px;
+}
+.material-icons {
+        font-size: 80px;
+    }
+    .camera
+    {
+        margin-top: -80px;
+   
+          width: 50px;
+          height: 50px;
+          font-size: 50px;
+          color: #e7e3e3;
+          cursor: pointer;
+
+
+    }
+
+			canvas { border: dotted gray 2px; margin:20px; 
+
+      }
+
+      table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+  }
+
+		</style>
+	<body>
+
+
+    <!-- Definición del menú
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" target="_blank" href="#">OCR imagen</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#miNavbar" aria-controls="miNavbar" aria-expanded="false" aria-label="Mostrar u ocultar menú">
+      <span class="navbar-toggler-icon"></span>
+    </button> -->
+
+
+  </nav>
+    <canvas id="src" width="500" height="300"></canvas>
+    <canvas id="dest" width="500" height="300"></canvas>
+    <input type="file" class="custom-file-input" id="imageInput">
+    <center>
+      <label class="camera" width="10px" height="10px" for="archivo">
+        <i class="material-icons">camera_alt</i>
+      </label>
+    </center>
+
+    <table id="resultTable">
+      <thead>
+        <tr>
+          <th>Etiqueta</th>
+          <th>Texto</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+
+
+		<script src='https://unpkg.com/tesseract.js@v2.0.0-alpha.10/dist/tesseract.min.js'></script>
+		<script>
+      var ocrJson = {
+  "version": "1.0.0",
+  "schema": "Mi JSON de metadatos de OCR",
+  "rectangles": [
+    {"left": 70, "top": 95, "width": 130, "height": 15, "label": "Nombre del Paciente"},
+    {"left": 70, "top": 110, "width": 130, "height": 15, "label": "Dirección"},
+
+    {"left": 215, "top": 60, "width": 100, "height": 35, "label": "Fecha"},
+
+    {"left": 70, "top": 125, "width": 250, "height": 23, "label": "Señor(es)"},
+
+    {"left": 300, "top": 125, "width": 150, "height": 23, "label": "Nit"},
+
+    {"left": 70, "top": 150, "width": 250, "height": 20, "label": "Detalle"},
+    {"left": 70, "top": 200, "width": 250, "height": 20, "label": "Detalle2"},
+  ],
+};
+
+async function loadImage() {
+  return new Promise((resolve, reject) => {
+    const input = document.getElementById('imageInput');
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Error al cargar la imagen'));
+      img.src = event.target.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function cropImage(sourceImage, rect) {
+  const { left, top, width, height } = rect;
+
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = width;
+  cropCanvas.height = height;
+
+  const context = cropCanvas.getContext('2d');
+  context.drawImage(sourceImage, left, top, width, height, 0, 0, width, height);
+
+  return cropCanvas;
+}
+
+async function processLetter(img, rect, worker) {
+  const cropImgCanvas = cropImage(img, rect);
+
+  // Realizar OCR en el área recortada
+  const result = await worker.recognize(cropImgCanvas);
+  const text = result.text.trim();
+
+  const resultTable = document.getElementById('resultTable');
+  const row = resultTable.insertRow();
+  const labelCell = row.insertCell();
+  const textCell = row.insertCell();
+
+  labelCell.textContent = rect.label;
+  textCell.textContent = text;
+
+  console.log('Resultado OCR para la etiqueta', rect.label + ':', text);
+}
+
+async function init() {
+  console.log(ocrJson);
+  const worker = new Tesseract.TesseractWorker();
+  const srcContext = document.getElementById('src').getContext('2d');
+  const destContext = document.getElementById('dest').getContext('2d');
+
+  // Cargar y dibujar la imagen completa
+  const img = await loadImage();
+  srcContext.drawImage(img, 0, 0);
+
+  // Realizar OCR en la imagen completa
+  for (let i = 0; i < ocrJson.rectangles.length; i++) {
+    const rect = ocrJson.rectangles[i];
+
+    // Renderizar el área recortada en el lienzo de destino
+    const cropImgCanvas = cropImage(img, rect);
+    destContext.drawImage(cropImgCanvas, rect.left, rect.top);
+
+    // Dibujar un rectángulo rojo en el lienzo de origen
+    srcContext.beginPath();
+    srcContext.rect(rect.left, rect.top, rect.width, rect.height);
+    srcContext.strokeStyle = "#FF0000";
+    srcContext.stroke();
+
+    // Procesar las letras en el área recortada
+    await processLetter(img, rect, worker);
+  }
+}
+
+document.getElementById('imageInput').addEventListener('change', init);
+
+		</script>
+	</head>
+	</body>
+</html>

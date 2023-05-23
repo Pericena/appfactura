@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Conversor de imagen a texto - Extraer texto de imagen utilizando Tesseract OCR (reconocimiento óptico de caracteres)">
+    <meta name="author" content="Luishino">
+    <title>facturita XD</title>
+    <!-- Cargar el CSS de Bootstrap-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- Cargar estilos propios -->
+
+    <!-- https://siat.impuestos.gob.bo/consulta/QR?nit=151536020&cuf=A5E5704037992A7CB00F9B120194ED95DB8E6DFC03BBA855FC06FD74&numero=6854&t=1 -->
+<!-- 
+    https://siat.impuestos.gob.bo/facturacion/public/consultaFacturacion.xhtml -->
+<!-- 
+    https://pbdw.impuestos.gob.bo:8080/gob.sin.padron.web/#/verificar/estadoContribuyente -->
+
+
+
+<!-- 
+    https://pilotosiat.impuestos.gob.bo/Autenticacion/index.xhtml -->
+
+
+<!-- 
+    https://fiva.impuestos.gob.bo/gpri/public/VerificacionFactura.xhtml -->
+
+</head>
+
+
+<style>
+    .material-icons {
+        font-size: 80px;
+    }
+    .camera
+    {
+        margin-top: -80px;
+   
+          width: 50px;
+          height: 50px;
+          font-size: 50px;
+          color: #000;
+          cursor: pointer;
+
+
+    }
+
+    </style>
+
+<body>
+    <!-- Definición del menú -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <a class="navbar-brand" target="_blank" href="#">OCR imagen</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#miNavbar" aria-controls="miNavbar" aria-expanded="false" aria-label="Mostrar u ocultar menú">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+
+    </nav>
+    <!-- Termina la definición del menú -->
+    <main role="main" class="container">
+        <div class="row">
+          <div class="col-12">
+            <h5>facturita XD</h5>
+          </div>
+          <div class="col-12 col-md-6">
+            <h6>Selección de imagen</h6>
+            <img width="400px" height="150px" class="img-fluid" id="imagenPrevisualizacion">
+            <div class="custom-file">
+              <input id="archivo" type="file" class="custom-file-input">
+              <center>
+                <label class="camera" width="10px" height="10px" for="archivo">
+
+
+                  <i class="material-icons">camera_alt</i>
+                </label>
+              </center>
+
+
+            
+            </div>
+            <br><br>
+            <!-- <button id="btnDetectar" class="btn btn-success">Detectar</button> -->
+          </div>
+          <div class="col-12 col-md-6">
+            <h6>Resultados esperar 20 segundos</h6>
+            <p id="estado"></p>
+          </div>
+        </div>
+        <br>
+        <h6>by Luishiño :)</h6>
+      </main>
+    
+    <!-- Cargar jQuery y librerías JS necesarias. Si solo quieres el diseño, no las cargues -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src='js/tesseract.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+
+</body>
+<script>
+ 
+  
+
+$(".custom-file-input").on("change", function () {
+  let fileName = $(this).val().split("\\").pop();
+  $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+});
+
+const $imagen = document.querySelector("#archivo"),
+  $imagenPrevisualizacion = document.querySelector("#imagenPrevisualizacion"),
+ $btnDetectar = document.querySelector("#btnDetectar"),
+  $estado = document.querySelector("#estado");
+
+$imagen.addEventListener("change", () => {
+  if (!$imagen.files || !$imagen.files.length) {
+    $imagenPrevisualizacion.src = "";
+    return;
+  }
+  const reader = new FileReader(),
+    file = $imagen.files[0];
+  reader.readAsDataURL(file);
+  reader.onload = function () {
+    $imagenPrevisualizacion.src = reader.result;
+  };
+})
+
+$imagen.addEventListener("change", () => {
+    
+  const archivos = $imagen.files;
+  if (!archivos.length) return alert("No hay imágenes");
+
+  const worker = new Tesseract.TesseractWorker();
+  worker
+    .recognize(archivos[0], 'spa')
+    .progress(p => {
+      $estado.innerHTML += `<br><strong>Estado: ${p.status}</strong> (${p.progress * 100} % )`;
+    })
+    .then((result) => {
+      const textoExtraido = result.text;
+      const lineas = textoExtraido.split("\n");
+
+      let tablaHTML = "<table>";
+      let nit = "";
+      let numero = "";
+      let autorizacion = "";
+      let factura = "";
+      let fechaLimiteEmision = "";
+      let dia = "";
+      let mes = "";
+      let año = "";
+      let cant = "";
+      let detalle = "";
+      let pUnit = "";
+      let subtotal = "";
+      let totalBs = "";
+      let senor = "";
+
+      lineas.forEach((linea) => {
+        const campos = linea.match(/[A-Za-z0-9]+/g);
+        if (campos) {
+          tablaHTML += "<tr>";
+          campos.forEach((campo, index) => {
+            tablaHTML += "<td>" + campo + "</td>";
+            if (
+              campo.toUpperCase().includes("NIT") ||
+              campo.toUpperCase().includes("NIT ") ||
+              campo.toUpperCase().includes("NITICA:") ||
+              campo.toUpperCase().includes("N.I.T/C.I.:") ||
+              campo.toUpperCase().includes("N.I.T/C.I.") ||
+              campo.toUpperCase().includes("NIT/CI:") ||
+              campo.toUpperCase().includes("NIT/CI") ||
+              campo.toUpperCase().includes("NIT/CI ") 
+
+            ) {
+              const siguienteCampo = campos[index + 1];
+              if (siguienteCampo) {
+                nit = siguienteCampo;
+              }
+            }
+            if (
+              campo.toUpperCase().includes("Nº") ||
+              campo.toUpperCase().includes("N.º") ||
+              campo.toUpperCase().includes("N*")
+            ) {
+              const siguienteCampo = campos[index + 1];
+              if (siguienteCampo) {
+                numero = siguienteCampo;
+              }
+            }
+            if (campo.toUpperCase().includes("AUTORIZACION")) {
+              autorizacion = campos[index + 1];
+            }
+            if (
+                campo.toUpperCase().includes("FACTURA ") ||
+                campo.toUpperCase().includes("FACTURA N:") ||
+                campo.toUpperCase().includes("FACTURA N.º") 
+                ) {
+              factura = campos[index + 1];
+            }
+            if (
+                
+            campo.toUpperCase().includes("FECHA") && campos[index + 1]?.toUpperCase() === "LIMITE" && campos[index + 2]?.toUpperCase() === "DE" && campos[index + 3]?.toUpperCase() === "EMISION:") 
+            campo.toUpperCase().includes("EMISIÓN:") ||
+            campo.toUpperCase().includes("FECHA:") 
+                
+            {
+                fechaLimiteEmision = campos[index + 4];
+            }
+            if (campo.toUpperCase() === "DIA" && campos[index + 1]?.toUpperCase() === "MES" && campos[index + 2]?.toUpperCase() === "AÑO") {
+              dia = campos[index + 3];
+              mes = campos[index + 4];
+              año = campos[index + 5];
+            }
+            if (campo.toUpperCase() === "CANT.") {
+              cant = campos[index + 1];
+            }
+            if (campo.toUpperCase() === "DETALLE") {
+              detalle = campos[index + 1];
+            }
+            if (campo.toUpperCase() === "P.UNIT") {
+              pUnit = campos[index + 1];
+            }
+            if (campo.toUpperCase() === "SUBTOTAL") {
+              subtotal = campos[index + 1];
+            }
+            if (campo.toUpperCase().includes("TOTAL") && campos[index + 1]?.toUpperCase() === "BS") {
+              totalBs = campos[index + 2];
+            }
+            if (
+                campo.toUpperCase().includes("Señorles):")||
+                campo.toUpperCase().includes("Señor):")||
+                campo.toUpperCase().includes("señor):")||
+                campo.toUpperCase().includes("Señor(es)):")
+            
+            
+            ) {
+              senor = campos[index + 1];
+            }
+          });
+          tablaHTML += "</tr>";
+        }
+      });
+
+      tablaHTML += "</table>";
+
+      $estado.innerHTML = "<strong>El texto es: </strong>" + tablaHTML;
+      $estado.innerHTML += "<br><strong>NIT: </strong>" + nit;
+      $estado.innerHTML += "<br><strong>Número: </strong>" + numero;
+      $estado.innerHTML += "<br><strong>Autorización: </strong>" + autorizacion;
+      $estado.innerHTML += "<br><strong>Factura: </strong>" + factura;
+      $estado.innerHTML += "<br><strong>Fecha límite de emisión: </strong>" + fechaLimiteEmision;
+      $estado.innerHTML += "<br><strong>Día: </strong>" + dia;
+      $estado.innerHTML += "<br><strong>Mes: </strong>" + mes;
+      $estado.innerHTML += "<br><strong>Año: </strong>" + año;
+      $estado.innerHTML += "<br><strong>Cant.: </strong>" + cant;
+      $estado.innerHTML += "<br><strong>Detalle: </strong>" + detalle;
+      $estado.innerHTML += "<br><strong>P.UNIT: </strong>" + pUnit;
+      $estado.innerHTML += "<br><strong>Subtotal: </strong>" + subtotal;
+      $estado.innerHTML += "<br><strong>TOTAL Bs: </strong>" + totalBs;
+      $estado.innerHTML += "<br><strong>Señor(es): </strong>" + senor;
+
+      // Aplicar estilos CSS a la tabla y sus elementos
+      $estado.style.padding = "10px";
+      $estado.style.border = "1px solid #ccc";
+      $estado.style.borderRadius = "5px";
+      $estado.style.backgroundColor = "#f5f5f5";
+
+      const tabla = $estado.querySelector("table");
+      tabla.style.borderCollapse = "collapse";
+      tabla.style.width = "100%";
+
+      const th = tabla.querySelectorAll("th");
+      th.forEach((elemento) => {
+        elemento.style.border = "1px solid #ccc";
+        elemento.style.padding = "8px";
+        elemento.style.textAlign = "left";
+      });
+
+      const td = tabla.querySelectorAll("td");
+      td.forEach((elemento) => {
+        elemento.style.border = "1px solid #ccc";
+        elemento.style.padding = "8px";
+      });
+    });
+});
+
+
+
+</script>
+
+
+</html>
+
